@@ -7,40 +7,105 @@
 #include "system_status.h"
 #include <stdbool.h>
 #include "esp_log.h"
+#include <string.h>
+#include "test_protocol.h"
+
+#define START_1_SYMBOL 0x1d
+#define START_2_SYMBOL 0x1e
+
+// #define START_1_SYMBOL 0x61
+// #define START_2_SYMBOL 0x62
 
 static const char *TAG = "tp"; // TAG for debug
 
 void test_port_task(void* params);
 
+typedef enum {
+    START_1,
+    START_2,
+    ID,
+    PAYLOAD,
+    CRC
+} tp_prot_states;
+
 void test_port_start(){
-    xTaskCreate(test_port_task, "tp", 256, NULL, 3, NULL);
+    xTaskCreate(test_port_task, "tp", 1024, NULL, 3, NULL);
 }
+    // uart setup
+    uart_port_t uart_num = UART_NUM_1;
+    void test_port_task(void* params){
 
-void test_port_task(void* params){
-
-    const uart_port_t uart_num = UART_NUM_2;
-    uart_config_t uart_config = {
+    const uart_config_t uart_config = {
         .baud_rate = 115200,
         .data_bits = UART_DATA_8_BITS,
         .parity = UART_PARITY_DISABLE,
         .stop_bits = UART_STOP_BITS_1,
-        .flow_ctrl = UART_HW_FLOWCTRL_CTS_RTS,
-        .rx_flow_ctrl_thresh = 122,
+        .flow_ctrl = UART_HW_FLOWCTRL_DISABLE,
+        .source_clk = UART_SCLK_APB,
     };
-    // Configure UART parameters
-    ESP_ERROR_CHECK(uart_param_config(uart_num, &uart_config));
+    // We won't use a buffer for sending data.
+    uart_driver_install(uart_num, 1024 * 2, 0, 0, NULL, 0);
+    uart_param_config(uart_num, &uart_config);
+    uart_set_pin(uart_num, 1, 3, UART_PIN_NO_CHANGE, UART_PIN_NO_CHANGE);
 
-    // Set UART pins(TX: IO4, RX: IO5, RTS: IO18, CTS: IO19)
-    ESP_ERROR_CHECK(uart_set_pin(UART_NUM_2, 4, 5, 18, 19));
+    // data reception FSM
+    tp_prot_frame_t frame;
+    tp_prot_states tp_prot_fsm = START_1;
 
-    // Setup UART buffered IO with event queue
-    const int uart_buffer_size = (1024 * 2);
-    QueueHandle_t uart_queue;
-    // Install UART driver using an event queue here
-    ESP_ERROR_CHECK(uart_driver_install(UART_NUM_2, uart_buffer_size, \
-                                            uart_buffer_size, 10, &uart_queue, 0));
+    char* start_1_dbg = "start 1\n";
+    char* start_2_dbg = "start 2\n";
+    char* id_dbg = "id\n";
+    char* payload_dbg = "payload\n";
+    char* crc_dbg = "crc\n";
 
+    uint8_t receiced_byte;
     while(1){
-        
+        // Read data from the UART
+        int len = uart_read_bytes(uart_num, &receiced_byte, sizeof(receiced_byte), 1000);
+        switch (tp_prot_fsm) {
+            case START_1: {
+                if(receiced_byte == START_1_SYMBOL){
+                    frame.START_1 = receiced_byte;
+                    // uart_write_bytes(uart_num, start_1_dbg, strlen(start_1_dbg));
+                    tp_prot_fsm = START_2;
+                }else{
+                    tp_prot_fsm = START_1;
+                }
+                break;
+            }
+            case START_2: {
+                if(receiced_byte == START_2_SYMBOL){
+                    frame.START_2 = receiced_byte;
+                    // uart_write_bytes(uart_num, start_2_dbg, strlen(start_2_dbg));
+                    tp_prot_fsm = ID;
+                }else{
+                    tp_prot_fsm = START_1;
+                }
+                break;
+            }
+            case ID: {
+                frame.ID = receiced_byte;
+                    // uart_write_bytes(uart_num, id_dbg, strlen(id_dbg));
+                tp_prot_fsm = PAYLOAD;
+                break;
+            }
+            case PAYLOAD: {
+                frame.PAYLOAD = receiced_byte;
+                    // uart_write_bytes(uart_num, payload_dbg, strlen(payload_dbg));
+                tp_prot_fsm = CRC;
+                break;
+            }
+            case CRC: {
+                frame.CRC = receiced_byte;
+                frame_handler(frame);  // execute frame
+                // uart_write_bytes(uart_num, crc_dbg, strlen(crc_dbg));
+                tp_prot_fsm = START_1;
+                break;
+            }
+            default:{
+                tp_prot_fsm = START_1;
+                break;
+            }
+        }
     }
 }

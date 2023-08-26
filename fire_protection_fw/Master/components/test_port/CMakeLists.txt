@@ -1,3 +1,3 @@
-idf_component_register(SRCS "test_port.c"
+idf_component_register(SRCS "test_protocol.c" "test_port.c"
                     INCLUDE_DIRS "include"
-                    REQUIRES driver effectors)
+                    REQUIRES driver data_gather)

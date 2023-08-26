@@ -1,6 +1,7 @@
 #include "web_app.h"
 #include "data_gather.h"
 #include "effectors.h"
+#include "test_port.h"
 #include "led_strip.h"
 #include "nvs_flash.h"
 #include "esp_log.h"
@@ -40,6 +41,7 @@ void app_main()
     // GPIO initialization
 
     // web app initialization
+    test_port_start();
     data_gather_start();
     web_app_start();
     effectors_start();
