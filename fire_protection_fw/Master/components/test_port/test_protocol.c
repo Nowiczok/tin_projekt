@@ -73,7 +73,7 @@ uint8_t alarm_off_frame_handler(uint8_t payload){
 }
 
 uint8_t wifi_connection_frame_handler(uint8_t payload){
-    return payload;
+    return sys_stat_get_wifi_connected();
 }
 
 uint8_t unknown_frame_handler(uint8_t payload){

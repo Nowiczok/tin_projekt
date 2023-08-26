@@ -52,12 +52,6 @@ void test_port_start(){
     tp_prot_frame_t frame;
     tp_prot_states tp_prot_fsm = START_1;
 
-    char* start_1_dbg = "start 1\n";
-    char* start_2_dbg = "start 2\n";
-    char* id_dbg = "id\n";
-    char* payload_dbg = "payload\n";
-    char* crc_dbg = "crc\n";
-
     uint8_t receiced_byte;
     while(1){
         // Read data from the UART

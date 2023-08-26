@@ -8,6 +8,7 @@
 #include <lwip/sys.h>
 #include <lwip/api.h>
 #include <lwip/netdb.h>
+#include "system_status.h"
 
 static const char *TAG = "net_connection"; // TAG for debug
 
@@ -112,15 +113,21 @@ void web_connect(void)
     {
         ESP_LOGI(TAG, "connected to ap SSID:%s password:%s",
                  EXAMPLE_ESP_WIFI_SSID, EXAMPLE_ESP_WIFI_PASS);
+        // write to status struct
+        sys_stat_set_wifi_connected(true);
     }
     else if (bits & WIFI_FAIL_BIT)
     {
         ESP_LOGI(TAG, "Failed to connect to SSID:%s, password:%s",
                  EXAMPLE_ESP_WIFI_SSID, EXAMPLE_ESP_WIFI_PASS);
+        // write to status struct
+        sys_stat_set_wifi_connected(false);
     }
     else
     {
         ESP_LOGE(TAG, "UNEXPECTED EVENT");
+        // write to status struct
+        sys_stat_set_wifi_connected(false);
     }
     vEventGroupDelete(s_wifi_event_group);
 }

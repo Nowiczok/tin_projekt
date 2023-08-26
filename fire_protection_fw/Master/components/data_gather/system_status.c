@@ -17,6 +17,7 @@ typedef struct __attribute__((__packed__)){
     bool fire_detected;
     bool pump_status;
     bool alarm_status;
+    bool wifi_connected;
     node_status_t nodes[NODES_MAX_NUM];
 }nodes_status_t;
 
@@ -49,6 +50,13 @@ bool sys_stat_get_alarm(){
     bool alarm = system_status.alarm_status;
     xSemaphoreGive(sys_stat_mutex);
     return alarm;
+}
+
+bool sys_stat_get_wifi_connected(){
+    xSemaphoreTake(sys_stat_mutex, 100);
+    bool wifi_connected = system_status.wifi_connected;
+    xSemaphoreGive(sys_stat_mutex);
+    return wifi_connected;
 }
 
 bool sys_stat_get_online(uint8_t node_id){
@@ -130,6 +138,12 @@ void sys_stat_set_pump(bool pump_stat){
 void sys_stat_set_alarm(bool alarm_stat){
     xSemaphoreTake(sys_stat_mutex, 100);
     system_status.alarm_status = alarm_stat;
+    xSemaphoreGive(sys_stat_mutex);
+}
+
+void sys_stat_set_wifi_connected(bool wifi_connected){
+    xSemaphoreTake(sys_stat_mutex, 100);
+    system_status.wifi_connected = wifi_connected;
     xSemaphoreGive(sys_stat_mutex);
 }
 
