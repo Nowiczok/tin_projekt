@@ -40,12 +40,30 @@ void frame_handler(tp_prot_frame_t frame){
         if(handlers[i].ID == frame.ID){
             uint8_t new_payload = handlers[i].handler(frame.PAYLOAD);
             frame.PAYLOAD = new_payload;
+            tp_prot_frame_u frame_union;
+            frame_union.frame_fields = frame;
+            frame.CRC = calculate_crc(frame_union);
             uart_write_bytes(UART_NUM_1, &frame, sizeof(frame));
             break;
         }else{
             i++;
         }
     }
+}
+
+uint8_t calculate_crc(tp_prot_frame_u frame){
+    uint8_t crc = 0;
+    for(uint8_t i = 0; i < sizeof(tp_prot_frame_u)-1; i++){
+        crc ^= frame.frame_bytes[i];
+        for(uint8_t j = 0; j < 8; j++){
+            if(crc & 0x80){
+                crc = (crc << 1) ^ 0x07;
+            }else{
+                crc <<= 1;
+            }
+        }
+    }
+    return crc;
 }
 
 uint8_t ping_frame_handler(uint8_t payload){

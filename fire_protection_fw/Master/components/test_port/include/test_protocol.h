@@ -11,6 +11,12 @@ typedef struct __attribute__((__packed__)){
     uint8_t CRC;
 }tp_prot_frame_t;
 
+typedef union {
+    tp_prot_frame_t frame_fields;
+    uint8_t frame_bytes[sizeof(tp_prot_frame_t)];
+}tp_prot_frame_u;
+
 void frame_handler(tp_prot_frame_t frame);
+uint8_t calculate_crc(tp_prot_frame_u frame);
 
 #endif

@@ -91,7 +91,13 @@ void test_port_start(){
             }
             case CRC: {
                 frame.CRC = receiced_byte;
-                frame_handler(frame);  // execute frame
+                tp_prot_frame_u frame_union;
+                frame_union.frame_fields = frame;
+                uint8_t crc_calc = calculate_crc(frame_union);
+                if(frame.CRC == crc_calc){
+                    frame_handler(frame);  // execute frame
+                }
+                
                 // uart_write_bytes(uart_num, crc_dbg, strlen(crc_dbg));
                 tp_prot_fsm = START_1;
                 break;
