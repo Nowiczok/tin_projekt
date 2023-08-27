@@ -31,36 +31,21 @@ class SerialFrame:
                     crc <<= 1
         return crc & 0xFF
 
-    def receive_frame(self, serial_port, timeout=10):
-        start_bytes = bytes([self.start >> 8, self.start & 0xFF])
+    def receive_frame(self, serial_port):
         received_bytes = bytearray()
-
-        def read_serial():
-            nonlocal received_bytes
-            while True:
-                received_byte = serial_port.read(1)
-                if received_byte:
-                    received_bytes += received_byte
-
-        serial_thread = threading.Thread(target=read_serial)
-        serial_thread.start()
-
-        start_time = time.time()
-        while time.time() - start_time < timeout:
-            if start_bytes in received_bytes:
-                start_index = received_bytes.index(start_bytes)
-                if len(received_bytes) >= start_index + 5:  # Minimalna długość ramki
+        while True:
+            received_byte = serial_port.read(1)
+            if received_byte:
+                received_bytes += received_byte
+                if len(received_bytes) >= 5:  # Minimalna długość ramki
                     received_frame = SerialFrame(
-                        (received_bytes[start_index] << 8) | received_bytes[start_index + 1],
-                        received_bytes[start_index + 2],
-                        received_bytes[start_index + 3]
+                        (received_bytes[0] << 8) | received_bytes[1],
+                        received_bytes[2],
+                        received_bytes[3]
                     )
-                    if received_frame.to_bytes() == received_bytes[start_index:start_index + 5]:
-                        serial_thread.join()  # Zakończenie wątku
-                        return True  # Ramka odczytana poprawnie
+                    if received_frame.to_bytes() == received_bytes:
+                        return True
 
-        serial_thread.join()  # Zakończenie wątku
-        return False  # Przekroczono czas oczekiwania
 def send_frame(serial_port, frame):
     serial_port.write(frame.to_bytes())
     print(f"Sent: {frame.to_bytes().hex()}")
@@ -114,7 +99,7 @@ class MainWindow(QMainWindow):
     def test_ping(self):
         def ping_task():
             nonlocal test_result
-            test_result = ping_frame.receive_frame(self.Serial_Obj, timeout=1)
+            test_result = ping_frame.receive_frame(self.Serial_Obj)
 
         test_result = False
         ping_frame = SerialFrame(0x1D1E, 0x00, 0x00)
@@ -132,7 +117,7 @@ class MainWindow(QMainWindow):
         rel_on_frame = SerialFrame(0x1D1E, 0x01, 0x00)
         def rel_on_task():
             nonlocal test_result
-            test_result = rel_on_frame.receive_frame(self.Serial_Obj, timeout=1)
+            test_result = rel_on_frame.receive_frame(self.Serial_Obj)
 
         test_result = False
         send_frame(self.Serial_Obj, rel_on_frame)
@@ -151,7 +136,7 @@ class MainWindow(QMainWindow):
 
         def rel_off_task():
             nonlocal test_result
-            test_result = rel_off_frame.receive_frame(self.Serial_Obj, timeout=1)
+            test_result = rel_off_frame.receive_frame(self.Serial_Obj)
 
         test_result = False
         send_frame(self.Serial_Obj, rel_off_frame)
@@ -171,7 +156,7 @@ class MainWindow(QMainWindow):
 
         def alm_on_task():
             nonlocal test_result
-            test_result = alm_on_frame.receive_frame(self.Serial_Obj, timeout=1)
+            test_result = alm_on_frame.receive_frame(self.Serial_Obj)
 
         test_result = False
         send_frame(self.Serial_Obj, alm_on_frame)
@@ -190,7 +175,7 @@ class MainWindow(QMainWindow):
 
         def alm_off_task():
             nonlocal test_result
-            test_result = alm_off_frame.receive_frame(self.Serial_Obj, timeout=1)
+            test_result = alm_off_frame.receive_frame(self.Serial_Obj)
 
         test_result = False
         send_frame(self.Serial_Obj, alm_off_frame)
@@ -208,7 +193,7 @@ class MainWindow(QMainWindow):
         wifi_conn_frame = SerialFrame(0x1D1E, 0x05, 0x00)
         def wifi_conn_task():
             nonlocal test_result
-            test_result = wifi_conn_frame.receive_frame(self.Serial_Obj, timeout=1)
+            test_result = wifi_conn_frame.receive_frame(self.Serial_Obj)
 
         test_result = False
         send_frame(self.Serial_Obj, wifi_conn_frame)
