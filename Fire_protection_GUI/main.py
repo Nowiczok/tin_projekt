@@ -193,8 +193,8 @@ class MainWindow(QMainWindow):
         wifi_conn_frame = SerialFrame(0x1D1E, 0x05, 0x00)
         def wifi_conn_task():
             nonlocal test_result
-            ping_frame.payload = 0x01; #Recived frame has in payload value 1 if wifi is connected
-            ping_frame.crc = ping_frame.calculate_crc()
+            wifi_conn_frame.payload = 0x01; #Recived frame has in payload value 1 if wifi is connected
+            wifi_conn_frame.crc = wifi_conn_frame.calculate_crc()
             test_result = wifi_conn_frame.receive_frame(self.Serial_Obj)
 
         test_result = False
