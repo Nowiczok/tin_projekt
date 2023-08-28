@@ -99,6 +99,8 @@ class MainWindow(QMainWindow):
     def test_ping(self):
         def ping_task():
             nonlocal test_result
+            ping_frame.payload = 0x01; #Recived frame has in payload value 1 if wifi is connected
+            ping_frame.crc = ping_frame.calculate_crc()
             test_result = ping_frame.receive_frame(self.Serial_Obj)
 
         test_result = False
